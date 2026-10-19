@@ -13,13 +13,20 @@
 <body>
   <div class="app-shell">
     <aside class="sidebar" aria-label="Navegação principal">
-      <a class="brand" href="#inicio" aria-label="ObraControl, início">
-        <span class="brand-mark" aria-hidden="true">OC</span>
-        <span>Obra<span class="brand-accent">Control</span></span>
-      </a>
+      <div class="sidebar-header">
+        <a class="brand" href="#inicio" aria-label="ObraControl, início">
+          <span class="brand-mark" aria-hidden="true">OC</span>
+          <span>Obra<span class="brand-accent">Control</span></span>
+        </a>
+        <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-nav">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
 
       <p class="nav-label">MENU PRINCIPAL</p>
-      <nav class="main-nav">
+      <nav class="main-nav" id="main-nav">
         <a class="nav-link is-active" href="#inicio">
           <span class="nav-icon" aria-hidden="true">⌂</span>
           Início
@@ -165,6 +172,62 @@
             <button class="button button-primary" type="submit">Calcular <span aria-hidden="true">→</span></button>
           </div>
         </form>
+
+        <div class="geometry-grid">
+          <form class="geometry-card" id="area-calculator" aria-labelledby="area-title">
+            <div class="geometry-card-heading">
+              <span class="geometry-icon" aria-hidden="true">▱</span>
+              <div>
+                <p class="eyebrow">SUPERFÍCIES RETANGULARES</p>
+                <h3 id="area-title">Área em metros quadrados</h3>
+              </div>
+            </div>
+            <p class="geometry-formula">Largura × comprimento = área (m²)</p>
+            <div class="geometry-fields">
+              <label class="field">
+                <span>Largura (m)</span>
+                <input id="area-width" name="width" type="number" min="0.01" step="any" inputmode="decimal" placeholder="Ex.: 5" required />
+              </label>
+              <label class="field">
+                <span>Comprimento (m)</span>
+                <input id="area-length" name="length" type="number" min="0.01" step="any" inputmode="decimal" placeholder="Ex.: 4" required />
+              </label>
+            </div>
+            <div class="geometry-result-row">
+              <p class="result-area" id="area-result" aria-live="polite">O resultado aparecerá aqui.</p>
+              <button class="button button-primary" type="submit">Calcular área</button>
+            </div>
+          </form>
+
+          <form class="geometry-card" id="volume-calculator" aria-labelledby="volume-title">
+            <div class="geometry-card-heading">
+              <span class="geometry-icon" aria-hidden="true">▰</span>
+              <div>
+                <p class="eyebrow">ESPAÇOS EM FORMATO DE CAIXA</p>
+                <h3 id="volume-title">Volume em metros cúbicos</h3>
+              </div>
+            </div>
+            <p class="geometry-formula">Largura × comprimento × altura = volume (m³)</p>
+            <div class="geometry-fields volume-fields">
+              <label class="field">
+                <span>Largura (m)</span>
+                <input id="volume-width" name="width" type="number" min="0.01" step="any" inputmode="decimal" placeholder="Ex.: 5" required />
+              </label>
+              <label class="field">
+                <span>Comprimento (m)</span>
+                <input id="volume-length" name="length" type="number" min="0.01" step="any" inputmode="decimal" placeholder="Ex.: 4" required />
+              </label>
+              <label class="field">
+                <span>Altura (m)</span>
+                <input id="volume-height" name="height" type="number" min="0.01" step="any" inputmode="decimal" placeholder="Ex.: 2,5" required />
+              </label>
+            </div>
+            <div class="geometry-result-row">
+              <p class="result-area" id="volume-result" aria-live="polite">O resultado aparecerá aqui.</p>
+              <button class="button button-primary" type="submit">Calcular volume</button>
+            </div>
+          </form>
+        </div>
       </section>
 
       <footer class="page-footer">ObraControl <span>·</span> Feito para facilitar o dia a dia da obra.</footer>

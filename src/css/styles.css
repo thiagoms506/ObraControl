@@ -44,6 +44,11 @@ select {
   background: #fff;
   border-right: 1px solid var(--line);
 }
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 .brand {
   display: flex;
   align-items: center;
@@ -54,6 +59,41 @@ select {
     Arial,
     sans-serif;
   letter-spacing: -0.7px;
+}
+.menu-toggle {
+  display: none;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+.menu-toggle span {
+  width: 19px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--green);
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+.menu-toggle[aria-expanded="true"] span:first-child {
+  transform: translateY(7px) rotate(45deg);
+}
+.menu-toggle[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+.menu-toggle[aria-expanded="true"] span:last-child {
+  transform: translateY(-7px) rotate(-45deg);
+}
+.menu-toggle:focus-visible {
+  outline: 3px solid #b8d8c5;
+  outline-offset: 2px;
 }
 .brand-mark {
   display: grid;
@@ -477,6 +517,85 @@ h1 {
 .result-area.has-error {
   color: #bd5149;
 }
+.geometry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.geometry-card {
+  min-width: 0;
+  padding: 19px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fff;
+}
+.geometry-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.geometry-card-heading .eyebrow {
+  margin: 0 0 5px;
+  font-size: 9px;
+}
+.geometry-card-heading h3 {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: -0.25px;
+}
+.geometry-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 10px;
+  background: #edf5f0;
+  color: var(--green);
+  font-size: 20px;
+}
+.geometry-formula {
+  margin: 17px 0 13px;
+  color: #829087;
+  font-size: 10px;
+}
+.geometry-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.volume-fields {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.geometry-fields .field {
+  min-width: 0;
+}
+.geometry-fields .field input {
+  padding-inline: 9px;
+}
+.geometry-result-row {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 15px;
+  padding-top: 13px;
+  border-top: 1px solid #edf0ed;
+}
+.geometry-result-row .result-area {
+  font-size: 10px;
+}
+.geometry-result-row .result-area.has-result {
+  font-size: 13px;
+}
+.geometry-result-row .button {
+  min-height: 38px;
+  flex: 0 0 auto;
+  padding-inline: 12px;
+  font-size: 10px;
+}
 .page-footer {
   display: flex;
   gap: 7px;
@@ -516,12 +635,15 @@ h1 {
     border-bottom: 1px solid var(--line);
   }
   .brand {
-    padding: 0 2px 11px;
+    padding: 0 2px;
     font-size: 17px;
   }
   .brand-mark {
     width: 30px;
     height: 30px;
+  }
+  .menu-toggle {
+    display: flex;
   }
   .nav-label,
   .sidebar-note,
@@ -529,24 +651,23 @@ h1 {
     display: none;
   }
   .main-nav {
-    display: flex;
-    overflow-x: auto;
-    gap: 5px;
-    scrollbar-width: none;
-  }
-  .main-nav::-webkit-scrollbar {
     display: none;
+    margin-top: 10px;
+    padding-top: 9px;
+    border-top: 1px solid var(--line);
+  }
+  .sidebar.menu-open .main-nav {
+    display: grid;
   }
   .nav-link {
-    min-height: 35px;
-    flex: 0 0 auto;
-    gap: 7px;
-    padding: 0 9px;
-    font-size: 11px;
+    min-height: 40px;
+    gap: 10px;
+    padding: 0 10px;
+    font-size: 12px;
   }
   .nav-icon {
-    width: auto;
-    font-size: 15px;
+    width: 18px;
+    font-size: 17px;
   }
   .main-content {
     width: 100%;
@@ -607,6 +728,9 @@ h1 {
   .calculator-card {
     padding: 16px;
   }
+  .geometry-grid {
+    grid-template-columns: 1fr;
+  }
 }
 @media (max-width: 390px) {
   .main-content {
@@ -624,6 +748,19 @@ h1 {
     flex-direction: column;
   }
   .calculator-footer .button {
+    width: 100%;
+  }
+  .volume-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .volume-fields .field:last-child {
+    grid-column: 1 / -1;
+  }
+  .geometry-result-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .geometry-result-row .button {
     width: 100%;
   }
 }
