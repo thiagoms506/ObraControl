@@ -89,24 +89,90 @@
         </div>
       </section>
 
+      <section class="works-section" id="obras" aria-labelledby="works-title">
+        <div class="section-heading works-heading">
+          <div>
+            <p class="eyebrow">ACOMPANHAMENTO</p>
+            <h2 id="works-title">Minhas obras</h2>
+            <p class="section-description">Cadastre contratos e acompanhe os valores de cada obra.</p>
+          </div>
+          <button class="button button-primary" id="show-work-form" type="button">＋ Nova obra</button>
+        </div>
+
+        <p class="works-feedback" id="works-feedback" role="status" aria-live="polite"></p>
+        <div class="works-tabs" role="group" aria-label="Filtrar obras">
+          <button class="works-tab is-selected" id="active-works-tab" type="button" aria-pressed="true" aria-controls="work-list">
+            Minhas obras <span id="active-work-count">0</span>
+          </button>
+          <button class="works-tab" id="history-tab" type="button" aria-pressed="false" aria-controls="work-list">
+            Histórico <span id="history-work-count">0</span>
+          </button>
+        </div>
+        <div class="empty-state" id="works-empty">
+          <span class="empty-icon" aria-hidden="true">▤</span>
+          <h3 id="works-empty-title">Nenhuma obra cadastrada</h3>
+          <p id="works-empty-message">Cadastre sua primeira obra para começar a acompanhar os valores.</p>
+          <button class="button button-primary" id="empty-new-work" type="button">Cadastrar primeira obra</button>
+        </div>
+        <div class="work-list" id="work-list" hidden></div>
+      </section>
+
+      <section class="expenses-section" id="despesas" aria-labelledby="expenses-title">
+        <div class="section-heading works-heading">
+          <div>
+            <p class="eyebrow">CONTROLE FINANCEIRO</p>
+            <h2 id="expenses-title">Despesas</h2>
+            <p class="section-description">Veja os valores de todas as obras e registre seus gastos.</p>
+          </div>
+          <button class="button button-primary" id="show-expense-form" type="button">＋ Registrar despesa</button>
+        </div>
+
+        <p class="expenses-hint" id="expenses-hint"></p>
+        <div class="expenses-summary" aria-label="Resumo financeiro de todas as obras">
+          <article class="summary-card">
+            <span class="summary-label">Total recebido</span>
+            <strong id="total-received">R$ 0,00</strong>
+            <span class="summary-caption">Em todas as obras</span>
+          </article>
+          <article class="summary-card">
+            <span class="summary-label">Falta receber</span>
+            <strong id="total-to-receive">R$ 0,00</strong>
+            <span class="summary-caption">Dos contratos cadastrados</span>
+          </article>
+          <article class="summary-card">
+            <span class="summary-label">Total gasto</span>
+            <strong id="total-spent">R$ 0,00</strong>
+            <span class="summary-caption">Soma dos lançamentos</span>
+          </article>
+          <article class="summary-card">
+            <span class="summary-label">Recebido após gastos</span>
+            <strong id="total-cash-balance">R$ 0,00</strong>
+            <span class="summary-caption">Recebido menos despesas</span>
+          </article>
+        </div>
+
+        <div class="expense-list-heading">
+          <h3>Lançamentos</h3>
+          <span id="expense-count">0 despesas</span>
+        </div>
+        <div class="empty-state" id="expenses-empty">
+          <span class="empty-icon" aria-hidden="true">↗</span>
+          <h3>Nenhuma despesa registrada</h3>
+          <p>Os gastos das suas obras aparecerão aqui.</p>
+        </div>
+        <div class="expense-list" id="expense-list" hidden></div>
+      </section>
+
       <section class="section-block" aria-labelledby="modules-title">
         <div class="section-heading">
           <div>
             <p class="eyebrow">VISÃO GERAL</p>
-            <h2 id="modules-title">Tudo para acompanhar sua obra</h2>
+            <h2 id="modules-title">Outras áreas do sistema</h2>
           </div>
-          <span class="planned-label">Módulos planejados</span>
+          <span class="planned-label">Em planejamento</span>
         </div>
 
         <div class="module-grid">
-          <article class="module-card" id="obras">
-            <span class="module-icon icon-blue" aria-hidden="true">▤</span>
-            <div>
-              <h3>Obras</h3>
-              <p>Cadastre e acompanhe suas obras.</p>
-            </div>
-            <span class="card-arrow" aria-hidden="true">↗</span>
-          </article>
           <article class="module-card" id="materiais">
             <span class="module-icon icon-orange" aria-hidden="true">▦</span>
             <div>
@@ -123,17 +189,127 @@
             </div>
             <span class="card-arrow" aria-hidden="true">↗</span>
           </article>
-          <article class="module-card" id="despesas">
-            <span class="module-icon icon-purple" aria-hidden="true">↗</span>
-            <div>
-              <h3>Despesas</h3>
-              <p>Acompanhe os gastos da obra.</p>
-            </div>
-            <span class="card-arrow" aria-hidden="true">↗</span>
-          </article>
         </div>
         <p class="section-footnote">Essas áreas serão desenvolvidas por etapas.</p>
       </section>
+
+      <dialog class="work-dialog" id="work-dialog" aria-labelledby="work-dialog-title">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow" id="work-dialog-eyebrow">NOVA OBRA</p>
+            <h2 id="work-dialog-title">Cadastrar obra</h2>
+          </div>
+          <button class="dialog-close" id="close-work-dialog" type="button" aria-label="Fechar formulário">×</button>
+        </div>
+        <p class="dialog-description">Informe os dados do contrato e os valores atuais.</p>
+
+        <form class="work-form" id="work-form">
+          <p class="work-form-error" id="work-form-error" role="alert" aria-live="assertive"></p>
+          <label class="field">
+            <span>Nome da obra *</span>
+            <input name="name" type="text" maxlength="80" placeholder="Ex.: Reforma da casa da Rua das Flores" required />
+          </label>
+          <div class="work-form-grid">
+            <label class="field">
+              <span>Cliente</span>
+              <input name="client" type="text" maxlength="80" placeholder="Nome do cliente" />
+            </label>
+            <label class="field">
+              <span>Situação</span>
+              <select name="status">
+                <option value="planejada">Planejada</option>
+                <option value="em-andamento">Em andamento</option>
+                <option value="pausada">Pausada</option>
+                <option value="concluida">Concluída</option>
+              </select>
+            </label>
+          </div>
+          <label class="field">
+            <span>Endereço ou local</span>
+            <input name="location" type="text" maxlength="120" placeholder="Cidade, bairro ou endereço" />
+          </label>
+          <div class="work-form-grid finance-fields">
+            <label class="field">
+              <span>Valor contratado (R$) *</span>
+              <input name="contractValue" type="text" inputmode="decimal" placeholder="Ex.: 50.000,00" required />
+            </label>
+            <label class="field">
+              <span>Já recebido (R$)</span>
+              <input name="received" type="text" inputmode="decimal" value="0,00" required />
+            </label>
+          </div>
+          <div class="work-form-grid">
+            <label class="field">
+              <span>Data de início</span>
+              <input name="startDate" type="date" />
+            </label>
+            <label class="field">
+              <span>Previsão de conclusão</span>
+              <input name="endDate" type="date" />
+            </label>
+          </div>
+          <label class="field">
+            <span>Observações</span>
+            <textarea name="notes" rows="3" maxlength="500" placeholder="Anotações importantes sobre esta obra"></textarea>
+          </label>
+          <div class="work-form-actions">
+            <button class="button button-secondary" id="cancel-work-form" type="button">Cancelar</button>
+            <button class="button button-primary" type="submit">Salvar obra</button>
+          </div>
+        </form>
+      </dialog>
+
+      <dialog class="work-dialog" id="expense-dialog" aria-labelledby="expense-dialog-title">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">NOVO LANÇAMENTO</p>
+            <h2 id="expense-dialog-title">Registrar despesa</h2>
+          </div>
+          <button class="dialog-close" id="close-expense-dialog" type="button" aria-label="Fechar formulário">×</button>
+        </div>
+        <p class="dialog-description">Associe o gasto a uma obra. Em “Gastos gerais”, você pode registrar um total sem detalhar cada item.</p>
+
+        <form class="work-form" id="expense-form">
+          <p class="work-form-error" id="expense-form-error" role="alert" aria-live="assertive"></p>
+          <label class="field">
+            <span>Obra *</span>
+            <select name="workId" id="expense-work" required></select>
+          </label>
+          <div class="work-form-grid">
+            <label class="field">
+              <span>Categoria *</span>
+              <select name="category" id="expense-category" required>
+                <option value="funcionarios">Funcionários</option>
+                <option value="combustivel">Combustível</option>
+                <option value="ferramentas">Ferramentas</option>
+                <option value="materiais">Materiais</option>
+                <option value="transporte">Transporte e frete</option>
+                <option value="aluguel-equipamentos">Aluguel de equipamentos</option>
+                <option value="servicos">Serviços terceirizados</option>
+                <option value="alimentacao">Alimentação</option>
+                <option value="taxas">Taxas e impostos</option>
+                <option value="gastos-gerais">Gastos gerais (sem detalhamento)</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Data</span>
+              <input name="date" type="date" />
+            </label>
+          </div>
+          <label class="field">
+            <span>Descrição (opcional)</span>
+            <input name="description" type="text" maxlength="120" placeholder="Ex.: despesas acumuladas da semana" />
+          </label>
+          <label class="field">
+            <span>Valor (R$) *</span>
+            <input name="amount" id="expense-amount" type="text" inputmode="decimal" placeholder="Ex.: 1.250,00" required />
+          </label>
+          <div class="work-form-actions">
+            <button class="button button-secondary" id="cancel-expense-form" type="button">Cancelar</button>
+            <button class="button button-primary" type="submit">Salvar despesa</button>
+          </div>
+        </form>
+      </dialog>
 
       <section class="calculator-section" id="calculadora" aria-labelledby="calculator-title">
         <div class="section-heading calculator-heading">

@@ -3,10 +3,14 @@ import {
   setupBasicCalculator,
   setupVolumeCalculator,
 } from "./modules/calculadora/calculadora.js";
+import { setupWorks } from "./modules/obras/obras.js";
+import { setupExpenses } from "./modules/despesas/despesas.js";
 
 setupBasicCalculator();
 setupAreaCalculator();
 setupVolumeCalculator();
+setupExpenses();
+setupWorks();
 
 const navigationLinks = document.querySelectorAll(".nav-link");
 const sidebar = document.querySelector(".sidebar");
