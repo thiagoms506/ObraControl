@@ -354,9 +354,10 @@ export function setupWorks() {
       if (!work) return;
 
       const expenseTotal = getExpensesByWork().get(work.id) || 0;
-      const expenseSummary = expenseTotal > 0
-        ? `Também serão removidos os registros de despesas vinculados, no total de ${moneyFormatter.format(expenseTotal)}.`
-        : "";
+      const expenseSummary =
+        expenseTotal > 0
+          ? `Também serão removidos os registros de despesas vinculados, no total de ${moneyFormatter.format(expenseTotal)}.`
+          : "";
       const confirmed = window.confirm(
         `Deseja excluir a obra “${work.name}”?\n\n${expenseSummary}\n\nEssa ação não pode ser desfeita.`,
       );
