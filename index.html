@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Organize informações da sua obra com o ObraControl." />
+  <title>ObraControl | Gestão de obras</title>
+  <link rel="stylesheet" href="src/css/styles.css" />
+  <script type="module" src="src/js/app.js"></script>
+</head>
+
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navegação principal">
+      <a class="brand" href="#inicio" aria-label="ObraControl, início">
+        <span class="brand-mark" aria-hidden="true">OC</span>
+        <span>Obra<span class="brand-accent">Control</span></span>
+      </a>
+
+      <p class="nav-label">MENU PRINCIPAL</p>
+      <nav class="main-nav">
+        <a class="nav-link is-active" href="#inicio">
+          <span class="nav-icon" aria-hidden="true">⌂</span>
+          Início
+        </a>
+        <a class="nav-link" href="#obras">
+          <span class="nav-icon" aria-hidden="true">▤</span>
+          Obras
+        </a>
+        <a class="nav-link" href="#materiais">
+          <span class="nav-icon" aria-hidden="true">▦</span>
+          Materiais
+        </a>
+        <a class="nav-link" href="#compras">
+          <span class="nav-icon" aria-hidden="true">▣</span>
+          Compras
+        </a>
+        <a class="nav-link" href="#despesas">
+          <span class="nav-icon" aria-hidden="true">↗</span>
+          Despesas
+        </a>
+        <a class="nav-link" href="#calculadora">
+          <span class="nav-icon" aria-hidden="true">＋</span>
+          Calculadora
+        </a>
+      </nav>
+
+      <div class="sidebar-note">
+        <span class="note-icon" aria-hidden="true">✦</span>
+        <p>Um lugar mais simples para acompanhar cada etapa da sua obra.</p>
+      </div>
+      <p class="sidebar-version">ObraControl · versão inicial</p>
+    </aside>
+
+    <main class="main-content" id="inicio">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">GESTÃO DE OBRAS</p>
+          <h1>Seu espaço de trabalho</h1>
+        </div>
+        <span class="avatar" aria-label="Perfil">OC</span>
+      </header>
+
+      <section class="welcome-panel" aria-labelledby="welcome-title">
+        <div class="welcome-copy">
+          <p class="eyebrow eyebrow-light">BEM-VINDO AO OBRACONTROL</p>
+          <h2 id="welcome-title">Sua obra, organizada em um só lugar.</h2>
+          <p>
+            Acompanhe informações importantes e encontre ferramentas para o
+            dia a dia da construção.
+          </p>
+          <a class="button button-light" href="#calculadora">Abrir calculadora <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="welcome-art" aria-hidden="true">
+          <div class="art-sun"></div>
+          <div class="art-building building-back"></div>
+          <div class="art-building building-front">
+            <span></span><span></span><span></span><span></span>
+          </div>
+          <div class="art-ground"></div>
+        </div>
+      </section>
+
+      <section class="section-block" aria-labelledby="modules-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">VISÃO GERAL</p>
+            <h2 id="modules-title">Tudo para acompanhar sua obra</h2>
+          </div>
+          <span class="planned-label">Módulos planejados</span>
+        </div>
+
+        <div class="module-grid">
+          <article class="module-card" id="obras">
+            <span class="module-icon icon-blue" aria-hidden="true">▤</span>
+            <div>
+              <h3>Obras</h3>
+              <p>Cadastre e acompanhe suas obras.</p>
+            </div>
+            <span class="card-arrow" aria-hidden="true">↗</span>
+          </article>
+          <article class="module-card" id="materiais">
+            <span class="module-icon icon-orange" aria-hidden="true">▦</span>
+            <div>
+              <h3>Materiais</h3>
+              <p>Organize itens e quantidades.</p>
+            </div>
+            <span class="card-arrow" aria-hidden="true">↗</span>
+          </article>
+          <article class="module-card" id="compras">
+            <span class="module-icon icon-green" aria-hidden="true">▣</span>
+            <div>
+              <h3>Compras</h3>
+              <p>Registre pedidos e compras.</p>
+            </div>
+            <span class="card-arrow" aria-hidden="true">↗</span>
+          </article>
+          <article class="module-card" id="despesas">
+            <span class="module-icon icon-purple" aria-hidden="true">↗</span>
+            <div>
+              <h3>Despesas</h3>
+              <p>Acompanhe os gastos da obra.</p>
+            </div>
+            <span class="card-arrow" aria-hidden="true">↗</span>
+          </article>
+        </div>
+        <p class="section-footnote">Essas áreas serão desenvolvidas por etapas.</p>
+      </section>
+
+      <section class="calculator-section" id="calculadora" aria-labelledby="calculator-title">
+        <div class="section-heading calculator-heading">
+          <div>
+            <p class="eyebrow">FERRAMENTA RÁPIDA</p>
+            <h2 id="calculator-title">Calculadora básica</h2>
+            <p class="section-description">Faça operações simples para ajudar nas contas do dia a dia.</p>
+          </div>
+          <span class="calculator-badge" aria-hidden="true">＋</span>
+        </div>
+
+        <form class="calculator-card" id="basic-calculator">
+          <div class="calculator-fields">
+            <label class="field">
+              <span>Valor A</span>
+              <input id="first-value" name="firstValue" type="number" step="any" inputmode="decimal" placeholder="Ex.: 12,5" required />
+            </label>
+            <label class="field operation-field">
+              <span>Operação</span>
+              <select id="operation" name="operation">
+                <option value="add">Adição (+)</option>
+                <option value="subtract">Subtração (−)</option>
+                <option value="multiply">Multiplicação (×)</option>
+                <option value="divide">Divisão (÷)</option>
+                <option value="percentage">Porcentagem (A% de B)</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Valor B</span>
+              <input id="second-value" name="secondValue" type="number" step="any" inputmode="decimal" placeholder="Ex.: 8" required />
+            </label>
+          </div>
+          <p class="field-hint" id="calculator-hint">Para porcentagem, informe a taxa em A e o valor base em B. Exemplo: 10% de 200.</p>
+          <div class="calculator-footer">
+            <p class="result-area" id="calculator-result" aria-live="polite">O resultado aparecerá aqui.</p>
+            <button class="button button-primary" type="submit">Calcular <span aria-hidden="true">→</span></button>
+          </div>
+        </form>
+      </section>
+
+      <footer class="page-footer">ObraControl <span>·</span> Feito para facilitar o dia a dia da obra.</footer>
+    </main>
+  </div>
+</body>
+
+</html>
