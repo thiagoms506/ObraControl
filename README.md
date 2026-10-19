@@ -14,6 +14,13 @@ Aplicação web inicial para apoiar a organização do dia a dia de uma obra.
 - `src/js/modules/obras/obras.js`: cadastro, lista e resumo financeiro das obras.
 - `src/js/modules/obras/financeiro.js`: cálculos de valores a receber, saldo e dados do gráfico.
 - `src/js/modules/despesas/despesas.js`: lançamentos de despesas e resumo financeiro geral.
+- `src/js/modules/materiais/pedidos.js`: catálogo interno e montagem temporária de pedidos de materiais.
+
+## Pedidos de materiais
+
+Na seção **Materiais**, selecione uma obra, adicione itens do catálogo ou cadastre materiais manualmente e revise quantidades e unidades. O pedido permanece somente na memória da página; atualizar ou fechar a página limpa a lista.
+
+Ao gerar o documento, escolha **Salvar como PDF** na janela de impressão do navegador. O título do documento sugere um nome de arquivo baseado na obra. A exportação em JPEG não está incluída para manter texto e tabela nítidos.
 
 ## Como abrir
 

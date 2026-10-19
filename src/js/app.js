@@ -6,6 +6,7 @@ import {
 import { setupWorks } from "./modules/obras/obras.js";
 import { setupExpenses } from "./modules/despesas/despesas.js";
 import { setupReceipts } from "./modules/obras/recebimentos.js";
+import { setupMaterialsOrders } from "./modules/materiais/pedidos.js";
 
 setupBasicCalculator();
 setupAreaCalculator();
@@ -13,6 +14,7 @@ setupVolumeCalculator();
 setupReceipts();
 setupExpenses();
 setupWorks();
+setupMaterialsOrders();
 
 const navigationLinks = document.querySelectorAll(".nav-link");
 const sidebar = document.querySelector(".sidebar");

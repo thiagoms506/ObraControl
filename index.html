@@ -39,10 +39,6 @@
           <span class="nav-icon" aria-hidden="true">▦</span>
           Materiais
         </a>
-        <a class="nav-link" href="#compras">
-          <span class="nav-icon" aria-hidden="true">▣</span>
-          Compras
-        </a>
         <a class="nav-link" href="#despesas">
           <span class="nav-icon" aria-hidden="true">↗</span>
           Despesas
@@ -130,22 +126,57 @@
         <p class="expenses-hint" id="expenses-hint"></p>
         <div class="expenses-summary" aria-label="Resumo financeiro de todas as obras">
           <article class="summary-card">
-            <span class="summary-label">Total recebido</span>
+            <div class="summary-card-heading">
+              <span class="summary-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3v12" />
+                  <path d="m7 10 5 5 5-5" />
+                  <path d="M5 20h14" />
+                </svg>
+              </span>
+              <span class="summary-label">Total recebido</span>
+            </div>
             <strong id="total-received">R$ 0,00</strong>
             <span class="summary-caption">Em todas as obras</span>
           </article>
           <article class="summary-card">
-            <span class="summary-label">Falta receber</span>
+            <div class="summary-card-heading">
+              <span class="summary-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 2" />
+                </svg>
+              </span>
+              <span class="summary-label">Falta receber</span>
+            </div>
             <strong id="total-to-receive">R$ 0,00</strong>
             <span class="summary-caption">Dos contratos cadastrados</span>
           </article>
           <article class="summary-card">
-            <span class="summary-label">Total gasto</span>
+            <div class="summary-card-heading">
+              <span class="summary-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />
+                  <path d="M9 8h6M9 12h6" />
+                </svg>
+              </span>
+              <span class="summary-label">Total gasto</span>
+            </div>
             <strong id="total-spent">R$ 0,00</strong>
             <span class="summary-caption">Soma dos lançamentos</span>
           </article>
           <article class="summary-card">
-            <span class="summary-label">Recebido após gastos</span>
+            <div class="summary-card-heading">
+              <span class="summary-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 19V5" />
+                  <path d="M4 19h17" />
+                  <path d="m7 15 4-4 3 2 6-7" />
+                  <path d="M16 6h4v4" />
+                </svg>
+              </span>
+              <span class="summary-label">Recebido após gastos</span>
+            </div>
             <strong id="total-cash-balance">R$ 0,00</strong>
             <span class="summary-caption">Recebido menos despesas</span>
           </article>
@@ -164,34 +195,126 @@
         </details>
       </section>
 
-      <section class="section-block" aria-labelledby="modules-title">
+      <section class="materials-section" id="materiais" aria-labelledby="materials-title">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">VISÃO GERAL</p>
-            <h2 id="modules-title">Outras áreas do sistema</h2>
+            <p class="eyebrow">PLANEJAMENTO DA OBRA</p>
+            <h2 id="materials-title">Pedidos de materiais</h2>
+            <p class="section-description">Monte uma lista organizada para orientar a compra dos materiais da obra.</p>
           </div>
-          <span class="planned-label">Em planejamento</span>
         </div>
 
-        <div class="module-grid">
-          <article class="module-card" id="materiais">
-            <span class="module-icon icon-orange" aria-hidden="true">▦</span>
-            <div>
-              <h3>Materiais</h3>
-              <p>Organize itens e quantidades.</p>
-            </div>
-            <span class="card-arrow" aria-hidden="true">↗</span>
-          </article>
-          <article class="module-card" id="compras">
-            <span class="module-icon icon-green" aria-hidden="true">▣</span>
-            <div>
-              <h3>Compras</h3>
-              <p>Registre pedidos e compras.</p>
-            </div>
-            <span class="card-arrow" aria-hidden="true">↗</span>
-          </article>
+        <p class="materials-feedback" id="materials-feedback" role="status" aria-live="polite"></p>
+        <div class="materials-no-works" id="materials-no-works" hidden>
+          <h3>Cadastre uma obra para começar</h3>
+          <p>O pedido de materiais precisa estar associado a uma obra cadastrada.</p>
+          <a class="button button-primary" href="#obras">Ir para Minhas obras</a>
         </div>
-        <p class="section-footnote">Essas áreas serão desenvolvidas por etapas.</p>
+
+        <div class="materials-builder" id="materials-builder" hidden>
+          <label class="field materials-work-field">
+            <span>Obra do pedido *</span>
+            <select id="materials-work" required>
+              <option value="">Selecione uma obra</option>
+            </select>
+          </label>
+
+          <div class="materials-add-grid">
+            <form class="materials-add-card" id="materials-catalog-form">
+              <div class="materials-card-heading">
+                <span class="geometry-icon" aria-hidden="true">▦</span>
+                <div>
+                  <h3>Adicionar do catálogo</h3>
+                  <p>Escolha um material e informe a quantidade.</p>
+                </div>
+              </div>
+              <label class="field">
+                <span>Categoria</span>
+                <select id="materials-category" required>
+                  <option value="">Selecione uma categoria</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Material</span>
+                <select id="materials-catalog-item" required disabled>
+                  <option value="">Selecione uma categoria primeiro</option>
+                </select>
+              </label>
+              <div class="materials-add-fields">
+                <label class="field">
+                  <span>Quantidade *</span>
+                  <input name="quantity" type="number" min="0" step="any" placeholder="Ex.: 20" required />
+                </label>
+                <label class="field">
+                  <span>Unidade *</span>
+                  <input name="unit" list="materials-unit-options" maxlength="20" placeholder="Ex.: saco" required />
+                </label>
+              </div>
+              <button class="button button-secondary" type="submit">Adicionar material</button>
+            </form>
+
+            <form class="materials-add-card" id="materials-manual-form">
+              <div class="materials-card-heading">
+                <span class="geometry-icon" aria-hidden="true">＋</span>
+                <div>
+                  <h3>Adicionar manualmente</h3>
+                  <p>Inclua um material que não esteja no catálogo.</p>
+                </div>
+              </div>
+              <label class="field">
+                <span>Nome do material *</span>
+                <input name="name" type="text" maxlength="100" placeholder="Ex.: Manta asfáltica" required />
+              </label>
+              <div class="materials-add-fields">
+                <label class="field">
+                  <span>Quantidade *</span>
+                  <input name="quantity" type="number" min="0" step="any" placeholder="Ex.: 20" required />
+                </label>
+                <label class="field">
+                  <span>Unidade *</span>
+                  <input name="unit" list="materials-unit-options" maxlength="20" placeholder="Ex.: rolo" required />
+                </label>
+              </div>
+              <button class="button button-secondary" type="submit">Adicionar material</button>
+            </form>
+          </div>
+
+          <datalist id="materials-unit-options">
+            <option value="unidade"></option>
+            <option value="saco"></option>
+            <option value="metro"></option>
+            <option value="kg"></option>
+            <option value="m²"></option>
+            <option value="m³"></option>
+            <option value="litro"></option>
+            <option value="rolo"></option>
+            <option value="barra"></option>
+            <option value="caixa"></option>
+          </datalist>
+
+          <section class="materials-items-section" aria-labelledby="materials-items-title">
+            <div class="materials-items-heading">
+              <div>
+                <h3 id="materials-items-title">Itens do pedido</h3>
+                <p>Revise as quantidades e unidades antes de gerar o documento.</p>
+              </div>
+              <span class="materials-item-count" id="materials-item-count">0 itens</span>
+            </div>
+            <div class="materials-empty" id="materials-empty">
+              Adicione materiais para montar seu pedido.
+            </div>
+            <div class="materials-items" id="materials-items"></div>
+          </section>
+
+          <label class="field materials-notes-field">
+            <span>Observações gerais (opcional)</span>
+            <textarea id="materials-notes" rows="3" maxlength="600" placeholder="Ex.: conferir medidas no local antes da compra."></textarea>
+          </label>
+          <div class="materials-actions">
+            <span>O documento será preparado para impressão ou para salvar como PDF.</span>
+            <button class="button button-primary" id="materials-generate-pdf" type="button" disabled>Gerar pedido em PDF</button>
+          </div>
+        </div>
       </section>
 
       <dialog class="work-dialog" id="work-dialog" aria-labelledby="work-dialog-title">
@@ -436,6 +559,7 @@
       <footer class="page-footer">ObraControl <span>·</span> Feito para facilitar o dia a dia da obra.</footer>
     </main>
   </div>
+  <section class="materials-print-document" id="materials-print-document" hidden aria-hidden="true"></section>
 </body>
 
 </html>

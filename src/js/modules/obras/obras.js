@@ -39,6 +39,10 @@ function readWorks() {
   }
 }
 
+export function getWorks() {
+  return readWorks();
+}
+
 function saveWorks(works) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(works));
