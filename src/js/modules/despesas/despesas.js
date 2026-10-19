@@ -1,7 +1,9 @@
 import { parseBrazilianMoney } from "../obras/financeiro.js";
+import { getReceivedByWork } from "../obras/recebimentos.js";
 
 const WORKS_KEY = "obracontrol.obras.v1";
 const EXPENSES_KEY = "obracontrol.despesas.v1";
+const RECEIPTS_KEY = "obracontrol.recebimentos.v1";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -62,14 +64,30 @@ export function deleteWorkAndExpenses(workId) {
   const expenses = readExpenses();
   const originalWorks = localStorage.getItem(WORKS_KEY);
   const originalExpenses = localStorage.getItem(EXPENSES_KEY);
+  const originalReceipts = localStorage.getItem(RECEIPTS_KEY);
+  let receipts = [];
+  if (originalReceipts !== null) {
+    try {
+      receipts = JSON.parse(originalReceipts);
+      if (!Array.isArray(receipts)) return false;
+    } catch {
+      return false;
+    }
+  }
   const updatedWorks = works.filter((work) => work.id !== workId);
-  const updatedExpenses = expenses.filter((expense) => expense.workId !== workId);
+  const updatedExpenses = expenses.filter(
+    (expense) => expense.workId !== workId,
+  );
+  const updatedReceipts = receipts.filter(
+    (receipt) => receipt.workId !== workId,
+  );
 
   if (updatedWorks.length === works.length) return false;
 
   try {
     localStorage.setItem(WORKS_KEY, JSON.stringify(updatedWorks));
     localStorage.setItem(EXPENSES_KEY, JSON.stringify(updatedExpenses));
+    localStorage.setItem(RECEIPTS_KEY, JSON.stringify(updatedReceipts));
     return true;
   } catch {
     try {
@@ -77,6 +95,8 @@ export function deleteWorkAndExpenses(workId) {
       else localStorage.setItem(WORKS_KEY, originalWorks);
       if (originalExpenses === null) localStorage.removeItem(EXPENSES_KEY);
       else localStorage.setItem(EXPENSES_KEY, originalExpenses);
+      if (originalReceipts === null) localStorage.removeItem(RECEIPTS_KEY);
+      else localStorage.setItem(RECEIPTS_KEY, originalReceipts);
     } catch {
       // Keep the failure visible to the caller; localStorage writes are synchronous.
     }
@@ -88,7 +108,9 @@ function migrateOldWorkExpenses() {
   const works = readWorks();
   const expenses = readExpenses();
   const migratedWorkIds = new Set(
-    expenses.filter((expense) => expense.source === "initial-work-value").map((expense) => expense.workId),
+    expenses
+      .filter((expense) => expense.source === "initial-work-value")
+      .map((expense) => expense.workId),
   );
   let expensesChanged = false;
 
@@ -112,7 +134,9 @@ function migrateOldWorkExpenses() {
 
   if (expensesChanged && !saveExpenses(expenses)) return false;
 
-  const worksToUpdate = works.filter((work) => Number(work.spent) > 0 && migratedWorkIds.has(work.id));
+  const worksToUpdate = works.filter(
+    (work) => Number(work.spent) > 0 && migratedWorkIds.has(work.id),
+  );
   if (worksToUpdate.length === 0) return true;
 
   const updatedWorks = works.map((work) =>
@@ -133,7 +157,9 @@ export function getExpensesByWork() {
 
   // Keep the old value visible if storage prevented the one-time migration.
   const migratedWorkIds = new Set(
-    expenses.filter((expense) => expense.source === "initial-work-value").map((expense) => expense.workId),
+    expenses
+      .filter((expense) => expense.source === "initial-work-value")
+      .map((expense) => expense.workId),
   );
   for (const work of readWorks()) {
     const oldAmount = Number(work.spent) || 0;
@@ -154,7 +180,9 @@ function createTextElement(tagName, className, text) {
 
 function formatDate(dateValue) {
   if (!dateValue) return "";
-  return new Intl.DateTimeFormat("pt-BR").format(new Date(`${dateValue}T12:00:00`));
+  return new Intl.DateTimeFormat("pt-BR").format(
+    new Date(`${dateValue}T12:00:00`),
+  );
 }
 
 function renderWorkOptions(select, triggerButton, hint) {
@@ -165,13 +193,16 @@ function renderWorkOptions(select, triggerButton, hint) {
   placeholder.value = "";
   placeholder.disabled = true;
   placeholder.selected = true;
-  placeholder.textContent = works.length ? "Selecione uma obra" : "Cadastre uma obra primeiro";
+  placeholder.textContent = works.length
+    ? "Selecione uma obra"
+    : "Cadastre uma obra primeiro";
   select.append(placeholder);
 
   for (const work of works) {
     const option = document.createElement("option");
     option.value = work.id;
-    option.textContent = work.status === "concluida" ? `${work.name} (Concluída)` : work.name;
+    option.textContent =
+      work.status === "concluida" ? `${work.name} (Concluída)` : work.name;
     select.append(option);
   }
 
@@ -189,19 +220,33 @@ function createExpenseCard(expense, workNames) {
   const main = document.createElement("div");
   main.className = "expense-card-main";
   main.append(
-    createTextElement("span", "expense-category", categoryNames[expense.category] || "Outros"),
-    createTextElement("h4", "", expense.description || categoryNames[expense.category] || "Despesa"),
+    createTextElement(
+      "span",
+      "expense-category",
+      categoryNames[expense.category] || "Outros",
+    ),
+    createTextElement(
+      "h4",
+      "",
+      expense.description || categoryNames[expense.category] || "Despesa",
+    ),
   );
 
   const details = [];
-  if (workNames.has(expense.workId)) details.push(workNames.get(expense.workId));
+  if (workNames.has(expense.workId))
+    details.push(workNames.get(expense.workId));
   if (expense.date) details.push(formatDate(expense.date));
-  else if (expense.source === "initial-work-value") details.push("Sem data informada");
+  else if (expense.source === "initial-work-value")
+    details.push("Sem data informada");
 
   const side = document.createElement("div");
   side.className = "expense-card-side";
   side.append(
-    createTextElement("strong", "expense-amount", currencyFormatter.format(Number(expense.amount) || 0)),
+    createTextElement(
+      "strong",
+      "expense-amount",
+      currencyFormatter.format(Number(expense.amount) || 0),
+    ),
     createTextElement("p", "expense-details", details.join(" · ")),
   );
 
@@ -213,18 +258,61 @@ function renderExpenses() {
   const works = readWorks();
   const expenses = readExpenses();
   const workNames = new Map(works.map((work) => [work.id, work.name]));
-  const totalReceived = works.reduce((sum, work) => sum + (Number(work.received) || 0), 0);
+  const receivedByWork = getReceivedByWork();
+  const totalReceived = works.reduce(
+    (sum, work) => sum + (receivedByWork.get(work.id) || 0),
+    0,
+  );
   const totalToReceive = works.reduce((sum, work) => {
-    const remaining = Math.max((Number(work.contractValue) || 0) - (Number(work.received) || 0), 0);
+    const remaining = Math.max(
+      (Number(work.contractValue) || 0) - (receivedByWork.get(work.id) || 0),
+      0,
+    );
     return sum + remaining;
   }, 0);
-  const totalSpent = [...getExpensesByWork().values()].reduce((sum, amount) => sum + amount, 0);
+  const expensesByWork = getExpensesByWork();
+  const totalSpent = [...expensesByWork.values()].reduce(
+    (sum, amount) => sum + amount,
+    0,
+  );
+  const totalCashBalance = totalReceived - totalSpent;
+  const hasUsableBudgetData =
+    works.length > 0 &&
+    works.every(
+      (work) =>
+        Number.isFinite(Number(work.contractValue)) &&
+        Number(work.contractValue) > 0,
+    );
+  const hasOverBudgetWork =
+    hasUsableBudgetData &&
+    works.some(
+      (work) => (expensesByWork.get(work.id) || 0) > Number(work.contractValue),
+    );
 
-  document.querySelector("#total-received").textContent = currencyFormatter.format(totalReceived);
-  document.querySelector("#total-to-receive").textContent = currencyFormatter.format(totalToReceive);
-  document.querySelector("#total-spent").textContent = currencyFormatter.format(totalSpent);
-  document.querySelector("#total-cash-balance").textContent = currencyFormatter.format(totalReceived - totalSpent);
-  document.querySelector("#expense-count").textContent = `${expenses.length} ${expenses.length === 1 ? "despesa" : "despesas"}`;
+  const totalSpentCard = document
+    .querySelector("#total-spent")
+    .closest(".summary-card");
+  totalSpentCard.classList.toggle(
+    "is-favorable",
+    hasUsableBudgetData && !hasOverBudgetWork,
+  );
+  totalSpentCard.classList.toggle("is-unfavorable", hasOverBudgetWork);
+
+  const cashBalanceCard = document
+    .querySelector("#total-cash-balance")
+    .closest(".summary-card");
+  cashBalanceCard.classList.toggle("is-favorable", totalCashBalance > 0);
+  cashBalanceCard.classList.toggle("is-unfavorable", totalCashBalance < 0);
+
+  document.querySelector("#total-received").textContent =
+    currencyFormatter.format(totalReceived);
+  document.querySelector("#total-to-receive").textContent =
+    currencyFormatter.format(totalToReceive);
+  document.querySelector("#total-spent").textContent =
+    currencyFormatter.format(totalSpent);
+  document.querySelector("#total-cash-balance").textContent =
+    currencyFormatter.format(totalCashBalance);
+  document.querySelector("#expense-count").textContent = expenses.length;
 
   const expenseList = document.querySelector("#expense-list");
   const emptyState = document.querySelector("#expenses-empty");
@@ -232,7 +320,9 @@ function renderExpenses() {
     String(second.createdAt || "").localeCompare(String(first.createdAt || "")),
   );
 
-  expenseList.replaceChildren(...orderedExpenses.map((expense) => createExpenseCard(expense, workNames)));
+  expenseList.replaceChildren(
+    ...orderedExpenses.map((expense) => createExpenseCard(expense, workNames)),
+  );
   expenseList.hidden = orderedExpenses.length === 0;
   emptyState.hidden = orderedExpenses.length > 0;
 }
@@ -263,8 +353,12 @@ export function setupExpenses() {
     dialog.showModal();
     workSelect.focus();
   });
-  document.querySelector("#close-expense-dialog").addEventListener("click", closeDialog);
-  document.querySelector("#cancel-expense-form").addEventListener("click", closeDialog);
+  document
+    .querySelector("#close-expense-dialog")
+    .addEventListener("click", closeDialog);
+  document
+    .querySelector("#cancel-expense-form")
+    .addEventListener("click", closeDialog);
   dialog.addEventListener("click", (event) => {
     if (event.target === dialog) closeDialog();
   });
@@ -283,7 +377,9 @@ export function setupExpenses() {
     const amount = parseBrazilianMoney(amountInput.value);
     amountInput.setCustomValidity("");
     if (!Number.isFinite(amount) || amount <= 0) {
-      amountInput.setCustomValidity("Informe um valor maior que zero. Exemplo: 1.250,00.");
+      amountInput.setCustomValidity(
+        "Informe um valor maior que zero. Exemplo: 1.250,00.",
+      );
       form.reportValidity();
       return;
     }
@@ -315,6 +411,7 @@ export function setupExpenses() {
   refresh();
 
   if (!migrationSucceeded) {
-    hint.textContent = "Alguns gastos anteriores não puderam ser transferidos. Libere espaço no navegador e recarregue a página.";
+    hint.textContent =
+      "Alguns gastos anteriores não puderam ser transferidos. Libere espaço no navegador e recarregue a página.";
   }
 }

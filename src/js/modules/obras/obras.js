@@ -3,6 +3,11 @@ import {
   deleteWorkAndExpenses,
   getExpensesByWork,
 } from "../despesas/despesas.js";
+import {
+  addReceiptToWorkList,
+  getReceivedByWork,
+  getReceiptsByWork,
+} from "./recebimentos.js";
 
 const STORAGE_KEY = "obracontrol.obras.v1";
 
@@ -72,7 +77,7 @@ function formatDate(dateValue) {
   return new Intl.DateTimeFormat("pt-BR").format(date);
 }
 
-function createWorkCard(work, spent) {
+function createWorkCard(work, spent, received, receipts) {
   const card = document.createElement("article");
   card.className = "work-card";
 
@@ -102,7 +107,6 @@ function createWorkCard(work, spent) {
   top.append(titleBlock, status);
   card.append(top);
 
-  const received = Number(work.received) || 0;
   const contractValue = Number(work.contractValue) || 0;
   const summary = summarizeWork(contractValue, received, spent);
 
@@ -178,6 +182,8 @@ function createWorkCard(work, spent) {
 
   if (work.notes) card.append(createTextElement("p", "work-notes", work.notes));
 
+  addReceiptToWorkList(card, receipts);
+
   const actions = document.createElement("div");
   actions.className = "work-card-actions";
   const editButton = createTextElement(
@@ -187,6 +193,13 @@ function createWorkCard(work, spent) {
   );
   editButton.type = "button";
   editButton.dataset.editWorkId = work.id;
+  const paymentButton = createTextElement(
+    "button",
+    "button button-primary",
+    "Registrar pagamento",
+  );
+  paymentButton.type = "button";
+  paymentButton.dataset.registerReceiptId = work.id;
   const deleteButton = createTextElement(
     "button",
     "button button-danger",
@@ -194,7 +207,7 @@ function createWorkCard(work, spent) {
   );
   deleteButton.type = "button";
   deleteButton.dataset.deleteWorkId = work.id;
-  actions.append(editButton, deleteButton);
+  actions.append(paymentButton, editButton, deleteButton);
   card.append(actions);
 
   return card;
@@ -240,9 +253,16 @@ function renderWorks(workList, emptyState, currentView) {
   document.querySelector("#empty-new-work").hidden = currentView === "history";
 
   const expensesByWork = getExpensesByWork();
+  const receivedByWork = getReceivedByWork();
+  const receiptsByWork = getReceiptsByWork();
   workList.replaceChildren(
     ...visibleWorks.map((work) =>
-      createWorkCard(work, expensesByWork.get(work.id) || 0),
+      createWorkCard(
+        work,
+        expensesByWork.get(work.id) || 0,
+        receivedByWork.get(work.id) || 0,
+        receiptsByWork.get(work.id) || [],
+      ),
     ),
   );
   workList.hidden = visibleWorks.length === 0;
@@ -313,9 +333,6 @@ export function setupWorks() {
     form.querySelector('[name="status"]').value = work.status || "planejada";
     form.querySelector('[name="contractValue"]').value =
       moneyInputFormatter.format(Number(work.contractValue) || 0);
-    form.querySelector('[name="received"]').value = moneyInputFormatter.format(
-      Number(work.received) || 0,
-    );
     form.querySelector('[name="startDate"]').value = work.startDate || "";
     form.querySelector('[name="endDate"]').value = work.endDate || "";
     form.querySelector('[name="notes"]').value = work.notes || "";
@@ -358,8 +375,13 @@ export function setupWorks() {
         expenseTotal > 0
           ? `Também serão removidos os registros de despesas vinculados, no total de ${moneyFormatter.format(expenseTotal)}.`
           : "";
+      const receiptTotal = getReceivedByWork().get(work.id) || 0;
+      const receiptSummary =
+        receiptTotal > 0
+          ? `Recebimentos vinculados que também serão removidos: ${moneyFormatter.format(receiptTotal)}.`
+          : "";
       const confirmed = window.confirm(
-        `Deseja excluir a obra “${work.name}”?\n\n${expenseSummary}\n\nEssa ação não pode ser desfeita.`,
+        `Deseja excluir a obra “${work.name}”?\n\n${expenseSummary}\n${receiptSummary}\n\nEssa ação não pode ser desfeita.`,
       );
       if (!confirmed) return;
 
@@ -396,13 +418,10 @@ export function setupWorks() {
     const formData = new FormData(form);
     const nameInput = form.querySelector('[name="name"]');
     const contractInput = form.querySelector('[name="contractValue"]');
-    const receivedInput = form.querySelector('[name="received"]');
     const contractValue = parseBrazilianMoney(contractInput.value);
-    const received = parseBrazilianMoney(receivedInput.value);
 
     nameInput.setCustomValidity("");
     contractInput.setCustomValidity("");
-    receivedInput.setCustomValidity("");
 
     if (!nameInput.value.trim()) {
       nameInput.setCustomValidity("Informe o nome da obra.");
@@ -410,11 +429,6 @@ export function setupWorks() {
     if (!Number.isFinite(contractValue) || contractValue <= 0) {
       contractInput.setCustomValidity(
         "Informe um valor contratado válido. Exemplo: 50.000,00.",
-      );
-    }
-    if (!Number.isFinite(received) || received < 0) {
-      receivedInput.setCustomValidity(
-        "Informe um valor recebido válido, sem valor negativo.",
       );
     }
 
@@ -439,7 +453,7 @@ export function setupWorks() {
       location: String(formData.get("location") || "").trim(),
       status: String(formData.get("status")),
       contractValue,
-      received,
+      received: existingWork ? existingWork.received : 0,
       startDate,
       endDate,
       notes: String(formData.get("notes") || "").trim(),

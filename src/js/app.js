@@ -5,10 +5,12 @@ import {
 } from "./modules/calculadora/calculadora.js";
 import { setupWorks } from "./modules/obras/obras.js";
 import { setupExpenses } from "./modules/despesas/despesas.js";
+import { setupReceipts } from "./modules/obras/recebimentos.js";
 
 setupBasicCalculator();
 setupAreaCalculator();
 setupVolumeCalculator();
+setupReceipts();
 setupExpenses();
 setupWorks();
 

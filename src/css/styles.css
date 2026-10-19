@@ -6,6 +6,10 @@
   text-rendering: optimizeLegibility;
   --green: #1e654c;
   --deep-green: #174b3b;
+  --finance-favorable-bg: #dbeafe;
+  --finance-favorable-ink: #1d4ed8;
+  --finance-unfavorable-bg: #fee2e2;
+  --finance-unfavorable-ink: #b91c1c;
   --muted: #6f7c75;
   --line: #e8ece8;
 }
@@ -675,6 +679,59 @@ h1 {
   min-height: 36px;
   font-size: 10px;
 }
+.receipt-history {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #edf0ed;
+}
+.receipt-history summary {
+  color: var(--green);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+}
+.receipt-history[open] summary {
+  margin-bottom: 10px;
+}
+.receipt-history-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+.receipt-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.receipt-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #f9fbf9;
+}
+.receipt-item-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.receipt-item-heading strong {
+  color: #26372d;
+  font-size: 11px;
+}
+.receipt-item-heading time,
+.receipt-item p {
+  color: var(--muted);
+  font-size: 10px;
+}
+.receipt-item p {
+  margin: 0;
+  line-height: 1.4;
+}
 .expenses-section {
   padding-top: 4px;
 }
@@ -699,6 +756,24 @@ h1 {
   border-radius: 12px;
   background: #fff;
 }
+.summary-card.is-favorable {
+  border-color: #bfdbfe;
+  background: var(--finance-favorable-bg);
+}
+.summary-card.is-favorable .summary-label,
+.summary-card.is-favorable .summary-caption,
+.summary-card.is-favorable strong {
+  color: var(--finance-favorable-ink);
+}
+.summary-card.is-unfavorable {
+  border-color: #fecaca;
+  background: var(--finance-unfavorable-bg);
+}
+.summary-card.is-unfavorable .summary-label,
+.summary-card.is-unfavorable .summary-caption,
+.summary-card.is-unfavorable strong {
+  color: var(--finance-unfavorable-ink);
+}
 .summary-label,
 .summary-caption {
   color: var(--muted);
@@ -712,20 +787,23 @@ h1 {
 .summary-caption {
   font-size: 9px;
 }
-.expense-list-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+.expense-history {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #edf0ed;
 }
-.expense-list-heading h3 {
-  margin: 0;
-  font-size: 14px;
+.expense-history summary {
+  color: var(--green);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
 }
-.expense-list-heading span {
+.expense-history summary span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: inherit;
+}
+.expense-history[open] summary {
+  margin-bottom: 10px;
 }
 .expense-list {
   display: grid;
@@ -1280,6 +1358,11 @@ h1 {
   .expense-card-side {
     justify-items: start;
     text-align: left;
+  }
+  .receipt-item-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
   }
   .work-dialog {
     padding: 18px;
