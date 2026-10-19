@@ -54,5 +54,12 @@ function updateActiveNavigation() {
   });
 }
 
+if (!window.location.hash) {
+  const homeUrl = new URL(window.location.href);
+  homeUrl.hash = "inicio";
+  window.history.replaceState(null, "", homeUrl);
+  document.querySelector("#inicio").scrollIntoView({ block: "start" });
+}
+
 window.addEventListener("hashchange", updateActiveNavigation);
 updateActiveNavigation();
