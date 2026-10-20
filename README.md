@@ -63,3 +63,25 @@ Invoke-RestMethod http://127.0.0.1:3000/api/health/db
 ```
 
 `/api/health` verifica apenas se o servidor está respondendo. `/api/health/db` executa `SELECT 1` no MySQL e retorna HTTP `503` se a conexão falhar, sem expor credenciais ou detalhes internos.
+
+## Backend de autenticacao
+
+A autenticacao oferece cadastro, login, consulta da sessao e logout nas rotas /api/auth. O servidor usa Argon2id para senhas, sessoes persistentes na tabela MySQL sessions, cookies HttpOnly com SameSite=Lax e Secure quando NODE_ENV=production, token CSRF para operacoes de escrita e limite de tentativas de login por endereco IP. A aplicacao nao registra senhas, hashes, cookies, tokens CSRF nem identificadores de sessao.
+
+Antes de iniciar o servidor com esta etapa, configure SESSION_SECRET no arquivo .env com um valor aleatorio de pelo menos 32 bytes. O servidor recusa segredos ausentes ou fracos. O arquivo .env e ignorado pelo Git; mantenha o valor local ou em um gerenciador de segredos. Em producao, defina NODE_ENV=production e sirva a API por HTTPS. Se houver proxy reverso, configure TRUST_PROXY_HOPS com a quantidade exata de proxies confiaveis entre o cliente e a API (por exemplo, 1 para um proxy); nao confie em cabecalhos enviados diretamente por clientes.
+
+A tabela de sessoes precisa ser criada manualmente: revise server/sql/002_create_sessions.sql e execute-o no banco obracontrol somente depois de aprovar o conteudo. O servidor nao executa migracoes automaticamente. Esta migracao cria somente sessions e nao modifica as tabelas de negocio existentes.
+
+### Rotas de autenticacao
+
+- GET /api/auth/csrf: cria ou retorna o token CSRF da sessao no campo csrfToken.
+- POST /api/auth/register: recebe um objeto com email e password e requer o cabecalho X-CSRF-Token. A senha aceita de 15 a 128 caracteres, ate 512 bytes.
+- POST /api/auth/login: recebe os mesmos campos e requer X-CSRF-Token. O limite e de 60 tentativas malsucedidas por IP em 15 minutos; tentativas bem-sucedidas nao contam.
+- GET /api/auth/session: informa se a sessao atual esta autenticada.
+- POST /api/auth/logout: requer X-CSRF-Token e encerra a sessao.
+
+O token CSRF deve ser obtido e enviado pelo cliente em cada operacao de escrita. O frontend existente ainda nao esta integrado a essas rotas.
+
+### Testes
+
+Execute npm test. Os testes usam o MemoryStore do express-session e um repositorio de usuarios em memoria, sem importar o pool MySQL nem alterar usuarios ou sessoes do banco de desenvolvimento.

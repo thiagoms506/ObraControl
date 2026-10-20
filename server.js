@@ -1,44 +1,23 @@
 import "dotenv/config";
-import express from "express";
 import {
   checkDatabaseConnection,
   closeDatabasePool,
+  pool,
 } from "./server/database.js";
+import { UserRepository } from "./server/auth/userRepository.js";
+import { createApp } from "./server/app.js";
+import { requireSessionSecret } from "./server/config.js";
+import { MySQLSessionStore } from "./server/session/mysqlStore.js";
 
-const app = express();
 const port = Number.parseInt(process.env.PORT || "3000", 10);
 const host = process.env.HOST || "127.0.0.1";
-
-app.get("/api/health", (_request, response) => {
-  response.status(200).json({ status: "ok" });
-});
-
-app.get("/api/health/db", async (_request, response) => {
-  try {
-    await checkDatabaseConnection();
-    response.status(200).json({ status: "ok", database: "connected" });
-  } catch {
-    response.status(503).json({
-      status: "error",
-      database: "unavailable",
-      message: "Não foi possível conectar ao banco de dados.",
-    });
-  }
-});
-
-app.use((_request, response) => {
-  response.status(404).json({
-    status: "error",
-    message: "Rota não encontrada.",
-  });
-});
-
-app.use((error, _request, response, _next) => {
-  console.error("Erro interno ao processar a requisição.");
-  response.status(500).json({
-    status: "error",
-    message: "Ocorreu um erro interno.",
-  });
+const sessionSecret = requireSessionSecret(process.env.SESSION_SECRET);
+const sessionStore = new MySQLSessionStore(pool);
+const app = createApp({
+  userRepository: new UserRepository(pool),
+  sessionStore,
+  sessionSecret,
+  checkDatabaseConnection,
 });
 
 const server = app.listen(port, host, () => {
@@ -47,6 +26,7 @@ const server = app.listen(port, host, () => {
 
 async function shutdown() {
   server.close(async () => {
+    sessionStore.close();
     await closeDatabasePool();
     process.exit(0);
   });
