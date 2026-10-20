@@ -39,3 +39,27 @@ Use a aba **Histórico** para consultar obras com a situação **Concluída**. A
 Na área **Despesas**, registre gastos associados a uma obra. A categoria **Gastos gerais** permite lançar um total acumulado sem informar cada item. As despesas somadas aparecem no cartão da obra e no gráfico. O resumo geral soma o recebido, o que falta receber e as despesas de todas as obras; o saldo mostra recebido menos despesas.
 
 Se já havia um valor no campo antigo **Já gasto**, o sistema o transforma em um lançamento **Gastos anteriores sem detalhamento** na primeira abertura. O registro original é zerado após a migração para evitar que o mesmo valor seja contado duas vezes. Os dados continuam salvos somente neste navegador.
+
+## Backend (Etapa 1)
+
+O servidor Express é independente da interface atual. Ele disponibiliza as rotas de saúde na porta `3000` por padrão e usa um pool `mysql2` para conectar ao banco `obracontrol`.
+
+### Configuração
+
+1. Copie `.env.example` para `.env` na raiz do projeto.
+2. Preencha `DB_USER` e `DB_PASSWORD` com as credenciais locais do MySQL. Ajuste `DB_HOST`, `DB_PORT` ou `DB_NAME` se necessário. Não versione o arquivo `.env`.
+3. Instale as dependências com `npm install`.
+4. Inicie o servidor com `npm start`.
+
+O servidor escuta em `127.0.0.1` por padrão. `PORT` e `HOST` podem ser alterados no `.env`.
+
+### Verificação
+
+Com o servidor iniciado, teste no PowerShell:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:3000/api/health
+Invoke-RestMethod http://127.0.0.1:3000/api/health/db
+```
+
+`/api/health` verifica apenas se o servidor está respondendo. `/api/health/db` executa `SELECT 1` no MySQL e retorna HTTP `503` se a conexão falhar, sem expor credenciais ou detalhes internos.
