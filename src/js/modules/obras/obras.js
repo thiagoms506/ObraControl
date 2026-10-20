@@ -1,15 +1,16 @@
 import { parseBrazilianMoney, summarizeWork } from "./financeiro.js";
+import { readWorksSnapshot, writeStoredArray } from "./armazenamento.js";
 import {
   deleteWorkAndExpenses,
+  getExpensesStorageState,
   getExpensesByWork,
 } from "../despesas/despesas.js";
 import {
   addReceiptToWorkList,
   getReceivedByWork,
   getReceiptsByWork,
+  getReceiptStorageState,
 } from "./recebimentos.js";
-
-const STORAGE_KEY = "obracontrol.obras.v1";
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -27,29 +28,8 @@ const statusNames = {
   concluida: "Concluída",
 };
 
-function readWorks() {
-  try {
-    const savedWorks = localStorage.getItem(STORAGE_KEY);
-    if (!savedWorks) return [];
-
-    const works = JSON.parse(savedWorks);
-    return Array.isArray(works) ? works : [];
-  } catch {
-    return [];
-  }
-}
-
 export function getWorks() {
-  return readWorks();
-}
-
-function saveWorks(works) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(works));
-    return true;
-  } catch {
-    return false;
-  }
+  return readWorksSnapshot().works;
 }
 
 function createTextElement(tagName, className, text) {
@@ -233,8 +213,50 @@ function createLegendItem(label, value, colorClass) {
   return item;
 }
 
-function renderWorks(workList, emptyState, currentView) {
-  const works = readWorks();
+function renderWorks(workList, emptyState, currentView, feedback) {
+  const snapshot = readWorksSnapshot();
+  const works = snapshot.works;
+  if (!snapshot.ok) {
+    workList.replaceChildren();
+    workList.hidden = true;
+    emptyState.hidden = false;
+    document.querySelector("#active-work-count").textContent = "0";
+    document.querySelector("#history-work-count").textContent = "0";
+    document.querySelector("#works-empty-title").textContent =
+      "Não foi possível ler os dados das obras";
+    document.querySelector("#works-empty-message").textContent =
+      "Os dados salvos foram preservados. O cadastro, a edição e a exclusão estão bloqueados até que o armazenamento possa ser lido.";
+    document.querySelector("#empty-new-work").hidden = true;
+    document.querySelector("#show-work-form").disabled = true;
+    feedback.textContent = snapshot.error;
+    return;
+  }
+  document.querySelector("#show-work-form").disabled = false;
+
+  const expensesSnapshot = getExpensesStorageState();
+  const receiptsSnapshot = getReceiptStorageState();
+  if (!expensesSnapshot.ok || !receiptsSnapshot.ok) {
+    workList.replaceChildren();
+    workList.hidden = true;
+    emptyState.hidden = false;
+    document.querySelector("#active-work-count").textContent = "0";
+    document.querySelector("#history-work-count").textContent = "0";
+    document.querySelector("#works-empty-title").textContent =
+      "Não foi possível ler os dados financeiros";
+    document.querySelector("#works-empty-message").textContent =
+      "As obras e os lançamentos foram preservados. A lista está temporariamente indisponível para evitar exibir totais incorretos.";
+    document.querySelector("#empty-new-work").hidden = true;
+    feedback.textContent =
+      "Não foi possível ler despesas ou recebimentos; atualize a página após corrigir o armazenamento.";
+    return;
+  }
+
+  feedback.textContent = snapshot.invalidRecords.length
+    ? `${snapshot.invalidRecords.length} registro(s) de obra inválido(s) foram preservados e não serão usados nos cálculos. Confira esses dados; as alterações feitas em obras válidas manterão os registros originais.`
+    : expensesSnapshot.invalidRecords.length ||
+        receiptsSnapshot.invalidRecords.length
+      ? "Há lançamentos inválidos preservados no armazenamento. Os registros inválidos foram ignorados nos totais; revise os dados antes de excluir obras."
+      : "";
   const completedWorks = works.filter((work) => work.status === "concluida");
   const activeWorks = works.filter((work) => work.status !== "concluida");
   const visibleWorks = currentView === "history" ? completedWorks : activeWorks;
@@ -288,7 +310,7 @@ export function setupWorks() {
   let currentView = "active";
 
   function renderCurrentWorks() {
-    renderWorks(workList, emptyState, currentView);
+    renderWorks(workList, emptyState, currentView, feedback);
   }
 
   function selectView(view) {
@@ -369,7 +391,13 @@ export function setupWorks() {
   workList.addEventListener("click", (event) => {
     const deleteButton = event.target.closest("[data-delete-work-id]");
     if (deleteButton) {
-      const work = readWorks().find(
+      const worksSnapshot = readWorksSnapshot();
+      if (!worksSnapshot.ok) {
+        feedback.textContent =
+          "Não é seguro excluir a obra: os dados salvos não puderam ser lidos e foram preservados.";
+        return;
+      }
+      const work = worksSnapshot.works.find(
         (item) => item.id === deleteButton.dataset.deleteWorkId,
       );
       if (!work) return;
@@ -403,7 +431,7 @@ export function setupWorks() {
     const editButton = event.target.closest("[data-edit-work-id]");
     if (!editButton) return;
 
-    const work = readWorks().find(
+    const work = readWorksSnapshot().works.find(
       (item) => item.id === editButton.dataset.editWorkId,
     );
     if (work) openEditDialog(work);
@@ -448,8 +476,20 @@ export function setupWorks() {
     }
 
     const isEditing = Boolean(editingWorkId);
-    const works = readWorks();
-    const existingWork = works.find((item) => item.id === editingWorkId);
+    const worksSnapshot = readWorksSnapshot();
+    if (!worksSnapshot.ok) {
+      formError.textContent =
+        "Não é seguro salvar: os dados das obras não puderam ser lidos e foram preservados.";
+      return;
+    }
+    const existingWork = worksSnapshot.works.find(
+      (item) => item.id === editingWorkId,
+    );
+    if (editingWorkId && !existingWork) {
+      formError.textContent =
+        "Esta obra não está mais disponível para edição. Os dados não foram alterados.";
+      return;
+    }
     const work = {
       id: editingWorkId || crypto.randomUUID(),
       name: String(formData.get("name")).trim(),
@@ -465,11 +505,14 @@ export function setupWorks() {
     };
 
     const updatedWorks = editingWorkId
-      ? works.map((item) => (item.id === editingWorkId ? work : item))
-      : [...works, work];
+      ? worksSnapshot.records.map((item) =>
+          item?.id === editingWorkId ? work : item,
+        )
+      : [...worksSnapshot.records, work];
 
-    if (!saveWorks(updatedWorks)) {
-      formError.textContent = "Não foi possível salvar a obra neste navegador.";
+    if (!writeStoredArray(worksSnapshot, updatedWorks)) {
+      formError.textContent =
+        "Não foi possível salvar a obra com segurança. Os dados atuais foram preservados; recarregue a página e tente novamente.";
       return;
     }
 

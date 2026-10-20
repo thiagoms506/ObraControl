@@ -1,4 +1,4 @@
-import { getWorks } from "../obras/obras.js";
+import { readWorksSnapshot } from "../obras/armazenamento.js";
 
 const MATERIAL_CATALOG = [
   {
@@ -343,6 +343,9 @@ export function setupMaterialsOrders() {
 
   const builder = document.querySelector("#materials-builder");
   const noWorks = document.querySelector("#materials-no-works");
+  const noWorksTitle = noWorks.querySelector("h3");
+  const noWorksMessage = noWorks.querySelector("p");
+  const noWorksLink = noWorks.querySelector("a");
   const categorySelect = document.querySelector("#materials-category");
   const catalogItemSelect = document.querySelector("#materials-catalog-item");
   const catalogForm = document.querySelector("#materials-catalog-form");
@@ -436,7 +439,8 @@ export function setupMaterialsOrders() {
   }
 
   function renderWorks() {
-    const works = getWorks();
+    const snapshot = readWorksSnapshot();
+    const works = snapshot.works;
     const previousId = workSelect.value;
     workSelect.replaceChildren(createOption("", "Selecione uma obra"));
     works.forEach((work) => {
@@ -456,12 +460,36 @@ export function setupMaterialsOrders() {
     if (!hasWorks) {
       selectedWorkId = "";
       clearDraft();
+      if (!snapshot.ok) {
+        noWorksTitle.textContent = "Não foi possível ler as obras";
+        noWorksMessage.textContent =
+          "Os dados salvos foram preservados. O pedido não pode ser montado até que o armazenamento possa ser lido.";
+        noWorksLink.hidden = true;
+        announce(snapshot.error);
+      } else if (snapshot.invalidRecords.length) {
+        noWorksTitle.textContent = "Nenhuma obra válida disponível";
+        noWorksMessage.textContent =
+          "Há registros de obra inválidos. Eles foram preservados e não podem ser usados no pedido. Revise a seção Obras antes de continuar.";
+        noWorksLink.hidden = false;
+        announce(
+          `${snapshot.invalidRecords.length} registro(s) inválido(s) foram preservados e não podem ser selecionados.`,
+        );
+      } else {
+        noWorksTitle.textContent = "Cadastre uma obra para começar";
+        noWorksMessage.textContent =
+          "O pedido de materiais precisa estar associado a uma obra cadastrada.";
+        noWorksLink.hidden = false;
+      }
     } else if (selectedWorkId && !selectedStillExists) {
       selectedWorkId = "";
       workSelect.value = "";
       clearDraft();
       announce(
         "A obra selecionada não está mais disponível. Selecione outra obra.",
+      );
+    } else if (snapshot.invalidRecords.length) {
+      announce(
+        `${snapshot.invalidRecords.length} registro(s) de obra inválido(s) foram preservados e não podem ser selecionados.`,
       );
     }
   }
@@ -490,7 +518,9 @@ export function setupMaterialsOrders() {
   });
 
   generateButton.addEventListener("click", () => {
-    const work = getWorks().find((entry) => entry.id === workSelect.value);
+    const work = readWorksSnapshot().works.find(
+      (entry) => entry.id === workSelect.value,
+    );
     if (!work) {
       announce("Selecione uma obra cadastrada antes de gerar o documento.");
       renderWorks();

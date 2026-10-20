@@ -1,7 +1,14 @@
 import { parseBrazilianMoney } from "../obras/financeiro.js";
-import { getReceivedByWork } from "../obras/recebimentos.js";
+import {
+  getReceivedByWork,
+  getReceiptStorageState,
+} from "../obras/recebimentos.js";
+import {
+  readStoredArray,
+  readWorksSnapshot,
+  writeStoredArray,
+} from "../obras/armazenamento.js";
 
-const WORKS_KEY = "obracontrol.obras.v1";
 const EXPENSES_KEY = "obracontrol.despesas.v1";
 const RECEIPTS_KEY = "obracontrol.recebimentos.v1";
 
@@ -25,88 +32,108 @@ const categoryNames = {
 };
 
 function readWorks() {
-  try {
-    return JSON.parse(localStorage.getItem(WORKS_KEY) || "[]");
-  } catch {
-    return [];
-  }
+  return readWorksSnapshot().works;
+}
+
+function isValidExpense(expense) {
+  return Boolean(
+    expense &&
+    typeof expense === "object" &&
+    !Array.isArray(expense) &&
+    typeof expense.id === "string" &&
+    expense.id.trim() &&
+    typeof expense.workId === "string" &&
+    expense.workId.trim() &&
+    Number.isFinite(Number(expense.amount)) &&
+    Number(expense.amount) >= 0,
+  );
+}
+
+function readExpensesSnapshot() {
+  const snapshot = readStoredArray(EXPENSES_KEY);
+  if (!snapshot.ok)
+    return { ...snapshot, validRecords: [], invalidRecords: [] };
+  const validRecords = snapshot.records.filter(isValidExpense);
+  return {
+    ...snapshot,
+    validRecords,
+    invalidRecords: snapshot.records.filter(
+      (expense) => !isValidExpense(expense),
+    ),
+  };
 }
 
 export function readExpenses() {
-  try {
-    const expenses = JSON.parse(localStorage.getItem(EXPENSES_KEY) || "[]");
-    return Array.isArray(expenses) ? expenses : [];
-  } catch {
-    return [];
-  }
+  return readExpensesSnapshot().validRecords;
 }
 
-function saveWorks(works) {
-  try {
-    localStorage.setItem(WORKS_KEY, JSON.stringify(works));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function saveExpenses(expenses) {
-  try {
-    localStorage.setItem(EXPENSES_KEY, JSON.stringify(expenses));
-    return true;
-  } catch {
-    return false;
-  }
+export function getExpensesStorageState() {
+  return readExpensesSnapshot();
 }
 
 export function deleteWorkAndExpenses(workId) {
-  const works = readWorks();
-  const expenses = readExpenses();
-  const originalWorks = localStorage.getItem(WORKS_KEY);
-  const originalExpenses = localStorage.getItem(EXPENSES_KEY);
-  const originalReceipts = localStorage.getItem(RECEIPTS_KEY);
-  let receipts = [];
-  if (originalReceipts !== null) {
-    try {
-      receipts = JSON.parse(originalReceipts);
-      if (!Array.isArray(receipts)) return false;
-    } catch {
-      return false;
-    }
+  const worksSnapshot = readWorksSnapshot();
+  const expensesSnapshot = readExpensesSnapshot();
+  const receiptsSnapshot = readStoredArray(RECEIPTS_KEY);
+  if (!worksSnapshot.ok || !expensesSnapshot.ok || !receiptsSnapshot.ok) {
+    return false;
   }
-  const updatedWorks = works.filter((work) => work.id !== workId);
-  const updatedExpenses = expenses.filter(
-    (expense) => expense.workId !== workId,
+  const updatedWorks = worksSnapshot.records.filter(
+    (work) => !work || work.id !== workId,
   );
-  const updatedReceipts = receipts.filter(
-    (receipt) => receipt.workId !== workId,
+  const updatedExpenses = expensesSnapshot.records.filter(
+    (expense) => !isValidExpense(expense) || expense.workId !== workId,
+  );
+  const updatedReceipts = receiptsSnapshot.records.filter(
+    (receipt) =>
+      !(
+        receipt &&
+        typeof receipt === "object" &&
+        !Array.isArray(receipt) &&
+        typeof receipt.id === "string" &&
+        receipt.id.trim() &&
+        typeof receipt.workId === "string" &&
+        receipt.workId.trim() &&
+        Number.isFinite(Number(receipt.amount)) &&
+        Number(receipt.amount) > 0
+      ) || receipt.workId !== workId,
   );
 
-  if (updatedWorks.length === works.length) return false;
+  if (updatedWorks.length === worksSnapshot.records.length) return false;
 
+  const attemptedWrites = [];
   try {
-    localStorage.setItem(WORKS_KEY, JSON.stringify(updatedWorks));
-    localStorage.setItem(EXPENSES_KEY, JSON.stringify(updatedExpenses));
-    localStorage.setItem(RECEIPTS_KEY, JSON.stringify(updatedReceipts));
+    for (const [snapshot, records] of [
+      [worksSnapshot, updatedWorks],
+      [expensesSnapshot, updatedExpenses],
+      [receiptsSnapshot, updatedReceipts],
+    ]) {
+      if (!writeStoredArray(snapshot, records)) {
+        throw new Error("Stored data changed while deleting the work.");
+      }
+      attemptedWrites.push([snapshot, JSON.stringify(records)]);
+    }
     return true;
   } catch {
-    try {
-      if (originalWorks === null) localStorage.removeItem(WORKS_KEY);
-      else localStorage.setItem(WORKS_KEY, originalWorks);
-      if (originalExpenses === null) localStorage.removeItem(EXPENSES_KEY);
-      else localStorage.setItem(EXPENSES_KEY, originalExpenses);
-      if (originalReceipts === null) localStorage.removeItem(RECEIPTS_KEY);
-      else localStorage.setItem(RECEIPTS_KEY, originalReceipts);
-    } catch {
-      // Keep the failure visible to the caller; localStorage writes are synchronous.
+    for (const [snapshot, writtenValue] of attemptedWrites.reverse()) {
+      try {
+        if (localStorage.getItem(snapshot.key) !== writtenValue) continue;
+        if (snapshot.rawValue === null) localStorage.removeItem(snapshot.key);
+        else localStorage.setItem(snapshot.key, snapshot.rawValue);
+      } catch {
+        // The caller reports failure; never overwrite a value changed elsewhere.
+      }
     }
     return false;
   }
 }
 
 function migrateOldWorkExpenses() {
-  const works = readWorks();
-  const expenses = readExpenses();
+  const worksSnapshot = readWorksSnapshot();
+  const expensesSnapshot = readExpensesSnapshot();
+  if (!worksSnapshot.ok || !expensesSnapshot.ok) return false;
+  const works = worksSnapshot.works;
+  const expenses = [...expensesSnapshot.validRecords];
   const migratedWorkIds = new Set(
     expenses
       .filter((expense) => expense.source === "initial-work-value")
@@ -132,17 +159,25 @@ function migrateOldWorkExpenses() {
     expensesChanged = true;
   }
 
-  if (expensesChanged && !saveExpenses(expenses)) return false;
+  if (expensesChanged) {
+    const newlyMigrated = expenses.filter(
+      (expense) =>
+        !expensesSnapshot.records.some((saved) => saved?.id === expense.id),
+    );
+    const updatedExpenses = [...expensesSnapshot.records, ...newlyMigrated];
+    if (!writeStoredArray(expensesSnapshot, updatedExpenses)) return false;
+  }
 
   const worksToUpdate = works.filter(
     (work) => Number(work.spent) > 0 && migratedWorkIds.has(work.id),
   );
   if (worksToUpdate.length === 0) return true;
 
-  const updatedWorks = works.map((work) =>
-    migratedWorkIds.has(work.id) ? { ...work, spent: 0 } : work,
+  const workIdsToClear = new Set(worksToUpdate.map((work) => work.id));
+  const updatedWorks = worksSnapshot.records.map((work) =>
+    work && workIdsToClear.has(work.id) ? { ...work, spent: 0 } : work,
   );
-  return saveWorks(updatedWorks);
+  return writeStoredArray(worksSnapshot, updatedWorks);
 }
 
 export function getExpensesByWork() {
@@ -186,16 +221,23 @@ function formatDate(dateValue) {
 }
 
 function renderWorkOptions(select, triggerButton, hint) {
-  const works = readWorks();
+  const worksSnapshot = readWorksSnapshot();
+  const expensesSnapshot = readExpensesSnapshot();
+  const receiptsSnapshot = getReceiptStorageState();
+  const works = worksSnapshot.works;
+  const storageReadable =
+    worksSnapshot.ok && expensesSnapshot.ok && receiptsSnapshot.ok;
   select.replaceChildren();
 
   const placeholder = document.createElement("option");
   placeholder.value = "";
   placeholder.disabled = true;
   placeholder.selected = true;
-  placeholder.textContent = works.length
-    ? "Selecione uma obra"
-    : "Cadastre uma obra primeiro";
+  placeholder.textContent = !storageReadable
+    ? "Dados financeiros indisponíveis"
+    : works.length
+      ? "Selecione uma obra"
+      : "Cadastre uma obra primeiro";
   select.append(placeholder);
 
   for (const work of works) {
@@ -206,11 +248,15 @@ function renderWorkOptions(select, triggerButton, hint) {
     select.append(option);
   }
 
-  select.disabled = works.length === 0;
-  triggerButton.disabled = works.length === 0;
-  hint.textContent = works.length
-    ? "Você pode lançar cada gasto ou usar “Gastos gerais” para registrar um valor acumulado."
-    : "Cadastre uma obra antes de registrar despesas.";
+  select.disabled = !storageReadable || works.length === 0;
+  triggerButton.disabled = !storageReadable || works.length === 0;
+  hint.textContent = !storageReadable
+    ? "Não foi possível ler uma ou mais listas financeiras. Os dados existentes foram preservados e novos lançamentos estão bloqueados."
+    : worksSnapshot.invalidRecords.length
+      ? `${worksSnapshot.invalidRecords.length} registro(s) inválido(s) de obra foram preservados e não estão disponíveis para despesas.`
+      : works.length
+        ? "Você pode lançar cada gasto ou usar “Gastos gerais” para registrar um valor acumulado."
+        : "Cadastre uma obra antes de registrar despesas.";
 }
 
 function createExpenseCard(expense, workNames) {
@@ -255,8 +301,28 @@ function createExpenseCard(expense, workNames) {
 }
 
 function renderExpenses() {
-  const works = readWorks();
-  const expenses = readExpenses();
+  const worksSnapshot = readWorksSnapshot();
+  const expensesSnapshot = readExpensesSnapshot();
+  const receiptsSnapshot = getReceiptStorageState();
+  if (!worksSnapshot.ok || !expensesSnapshot.ok || !receiptsSnapshot.ok) {
+    for (const selector of [
+      "#total-received",
+      "#total-to-receive",
+      "#total-spent",
+      "#total-cash-balance",
+    ]) {
+      document.querySelector(selector).textContent = "—";
+    }
+    document.querySelector("#expense-count").textContent = "—";
+    document.querySelector("#expense-list").replaceChildren();
+    document.querySelector("#expense-list").hidden = true;
+    document.querySelector("#expenses-empty").hidden = true;
+    document.querySelector("#expenses-hint").textContent =
+      "Não foi possível ler uma ou mais listas financeiras. Os dados existentes foram preservados; totais e novos lançamentos estão indisponíveis até a leitura ser corrigida.";
+    return;
+  }
+  const works = worksSnapshot.works;
+  const expenses = expensesSnapshot.validRecords;
   const workNames = new Map(works.map((work) => [work.id, work.name]));
   const receivedByWork = getReceivedByWork();
   const totalReceived = works.reduce(
@@ -325,6 +391,22 @@ function renderExpenses() {
   );
   expenseList.hidden = orderedExpenses.length === 0;
   emptyState.hidden = orderedExpenses.length > 0;
+
+  const warnings = [];
+  if (worksSnapshot.invalidRecords.length) {
+    warnings.push(
+      `${worksSnapshot.invalidRecords.length} registro(s) de obra inválido(s) foram preservados e ignorados`,
+    );
+  }
+  if (expensesSnapshot.invalidRecords.length) {
+    warnings.push(
+      `${expensesSnapshot.invalidRecords.length} lançamento(s) inválido(s) foram preservados e ignorados`,
+    );
+  }
+  if (warnings.length) {
+    document.querySelector("#expenses-hint").textContent =
+      `${warnings.join("; ")}. Revise os dados salvos antes de excluir registros.`;
+  }
 }
 
 export function setupExpenses() {
@@ -373,6 +455,14 @@ export function setupExpenses() {
     event.preventDefault();
     if (!form.reportValidity()) return;
 
+    const worksSnapshot = readWorksSnapshot();
+    const expensesSnapshot = readExpensesSnapshot();
+    if (!worksSnapshot.ok || !expensesSnapshot.ok) {
+      error.textContent =
+        "Não é seguro salvar a despesa: os dados existentes não puderam ser lidos e foram preservados.";
+      return;
+    }
+
     const formData = new FormData(form);
     const amount = parseBrazilianMoney(amountInput.value);
     amountInput.setCustomValidity("");
@@ -385,9 +475,15 @@ export function setupExpenses() {
     }
 
     const category = String(formData.get("category"));
+    const workId = String(formData.get("workId"));
+    if (!worksSnapshot.works.some((work) => work.id === workId)) {
+      error.textContent =
+        "A obra selecionada não está disponível. Atualize a página e tente novamente.";
+      return;
+    }
     const expense = {
       id: crypto.randomUUID(),
-      workId: String(formData.get("workId")),
+      workId,
       category,
       description: String(formData.get("description") || "").trim(),
       amount,
@@ -395,9 +491,17 @@ export function setupExpenses() {
       createdAt: new Date().toISOString(),
     };
 
-    const expenses = [...readExpenses(), expense];
-    if (!saveExpenses(expenses)) {
-      error.textContent = "Não foi possível salvar a despesa neste navegador.";
+    if (
+      expensesSnapshot.records.some(
+        (savedExpense) => savedExpense?.id === expense.id,
+      ) ||
+      !writeStoredArray(expensesSnapshot, [
+        ...expensesSnapshot.records,
+        expense,
+      ])
+    ) {
+      error.textContent =
+        "Não foi possível salvar a despesa com segurança. Os dados atuais foram preservados; atualize a página e tente novamente.";
       return;
     }
 
@@ -411,7 +515,11 @@ export function setupExpenses() {
   refresh();
 
   if (!migrationSucceeded) {
-    hint.textContent =
-      "Alguns gastos anteriores não puderam ser transferidos. Libere espaço no navegador e recarregue a página.";
+    const worksSnapshot = readWorksSnapshot();
+    const expensesSnapshot = readExpensesSnapshot();
+    if (worksSnapshot.ok && expensesSnapshot.ok) {
+      hint.textContent =
+        "Alguns gastos anteriores não puderam ser transferidos. Os dados originais foram preservados; libere espaço no navegador e recarregue a página.";
+    }
   }
 }

@@ -1,6 +1,10 @@
 import { parseBrazilianMoney } from "./financeiro.js";
+import {
+  readStoredArray,
+  readWorksSnapshot,
+  writeStoredArray,
+} from "./armazenamento.js";
 
-const WORKS_KEY = "obracontrol.obras.v1";
 const RECEIPTS_KEY = "obracontrol.recebimentos.v1";
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -9,46 +13,59 @@ const moneyFormatter = new Intl.NumberFormat("pt-BR", {
 });
 
 function readWorks() {
-  try {
-    const works = JSON.parse(localStorage.getItem(WORKS_KEY) || "[]");
-    return Array.isArray(works) ? works : [];
-  } catch {
-    return [];
-  }
+  return readWorksSnapshot().works;
+}
+
+function isValidReceipt(receipt) {
+  return Boolean(
+    receipt &&
+    typeof receipt === "object" &&
+    !Array.isArray(receipt) &&
+    typeof receipt.id === "string" &&
+    receipt.id.trim() &&
+    typeof receipt.workId === "string" &&
+    receipt.workId.trim() &&
+    Number.isFinite(Number(receipt.amount)) &&
+    Number(receipt.amount) > 0,
+  );
+}
+
+function readReceiptsSnapshot() {
+  const snapshot = readStoredArray(RECEIPTS_KEY);
+  if (!snapshot.ok)
+    return { ...snapshot, validRecords: [], invalidRecords: [] };
+  const validRecords = snapshot.records.filter(isValidReceipt);
+  return {
+    ...snapshot,
+    validRecords,
+    invalidRecords: snapshot.records.filter(
+      (receipt) => !isValidReceipt(receipt),
+    ),
+  };
 }
 
 export function readReceipts() {
-  try {
-    const receipts = JSON.parse(localStorage.getItem(RECEIPTS_KEY) || "[]");
-    return Array.isArray(receipts) ? receipts : [];
-  } catch {
-    return [];
-  }
+  return readReceiptsSnapshot().validRecords;
 }
 
-function saveReceipts(receipts) {
-  try {
-    const savedReceipts = localStorage.getItem(RECEIPTS_KEY);
-    if (savedReceipts !== null && !Array.isArray(JSON.parse(savedReceipts))) {
-      return false;
-    }
-    localStorage.setItem(RECEIPTS_KEY, JSON.stringify(receipts));
-    return true;
-  } catch {
-    return false;
-  }
+export function getReceiptStorageState() {
+  return readReceiptsSnapshot();
 }
 
 export function saveReceipt(receipt) {
   const amount = Number(receipt?.amount);
-  const works = readWorks();
-  const receipts = readReceipts();
+  const worksSnapshot = readWorksSnapshot();
+  const receiptsSnapshot = readReceiptsSnapshot();
+  if (!worksSnapshot.ok || !receiptsSnapshot.ok) return false;
+  const works = worksSnapshot.works;
 
   if (
     !receipt?.id ||
     !receipt.workId ||
     !works.some((work) => work.id === receipt.workId) ||
-    receipts.some((savedReceipt) => savedReceipt.id === receipt.id) ||
+    receiptsSnapshot.records.some(
+      (savedReceipt) => savedReceipt?.id === receipt.id,
+    ) ||
     !Number.isFinite(amount) ||
     amount <= 0 ||
     !receipt.date
@@ -56,7 +73,10 @@ export function saveReceipt(receipt) {
     return false;
   }
 
-  return saveReceipts([...receipts, receipt]);
+  return writeStoredArray(receiptsSnapshot, [
+    ...receiptsSnapshot.records,
+    receipt,
+  ]);
 }
 
 function createLegacyReceipt(work) {
@@ -72,8 +92,11 @@ function createLegacyReceipt(work) {
 }
 
 export function migrateLegacyReceipts() {
-  const works = readWorks();
-  const receipts = readReceipts();
+  const worksSnapshot = readWorksSnapshot();
+  const receiptsSnapshot = readReceiptsSnapshot();
+  if (!worksSnapshot.ok || !receiptsSnapshot.ok) return false;
+  const works = worksSnapshot.works;
+  const receipts = [...receiptsSnapshot.validRecords];
   const migratedWorkIds = new Set(
     receipts
       .filter((receipt) => receipt.source === "legacy-opening-balance")
@@ -90,12 +113,20 @@ export function migrateLegacyReceipts() {
     changed = true;
   }
 
-  return !changed || saveReceipts(receipts);
+  if (!changed) return true;
+  const newlyMigrated = receipts.filter(
+    (receipt) =>
+      !receiptsSnapshot.records.some((existing) => existing?.id === receipt.id),
+  );
+  return writeStoredArray(receiptsSnapshot, [
+    ...receiptsSnapshot.records,
+    ...newlyMigrated,
+  ]);
 }
 
 export function getReceiptsByWork() {
   const receiptsByWork = new Map();
-  const receipts = readReceipts();
+  const receipts = readReceiptsSnapshot().validRecords;
 
   for (const receipt of receipts) {
     const amount = Number(receipt.amount);
@@ -112,7 +143,7 @@ export function getReceiptsByWork() {
       .map((receipt) => receipt.workId),
   );
 
-  for (const work of readWorks()) {
+  for (const work of readWorksSnapshot().works) {
     const oldReceived = Number(work.received) || 0;
     if (oldReceived <= 0 || migratedWorkIds.has(work.id)) continue;
 
